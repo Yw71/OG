@@ -1195,7 +1195,7 @@ function locateAndSetStation() {
 function requestLocation() {
   setGpsButtonState('loading');
 
-  // fallback timer — iOS Safari أحياناً بيتجمد بدون error callback
+  // fallback timer
   const TIMEOUT_MS = 16000;
   const fallbackTimer = setTimeout(() => {
     setGpsButtonState('error');
@@ -1203,12 +1203,17 @@ function requestLocation() {
   }, TIMEOUT_MS + 2000);
 
   navigator.geolocation.getCurrentPosition(
-    // ✅ نجح التحديد
     (position) => {
       clearTimeout(fallbackTimer);
       const { latitude, longitude, accuracy } = position.coords;
 
-      // لو الدقة سيئة جداً (أكتر من 500 م) نحذّر المستخدم
+      // [تعديل جديد] رفض الموقع إذا كانت الدقة سيئة جداً (أكثر من 1 كيلومتر)
+      if (accuracy > 1000) {
+        setGpsButtonState('error');
+        showToast(`دقة الـ GPS ضعيفة (${Math.round(accuracy)}م). قف في مكان مكشوف وجرب مجدداً.`, 'error');
+        return; // الخروج لتجنب تحديد محطة خاطئة
+      }
+
       if (accuracy > 150) {
         showToast(`تحديد تقريبي (دقة: ${Math.round(accuracy)}م) — جرب في مكان مفتوح`, 'warning');
       }
@@ -1225,7 +1230,7 @@ function requestLocation() {
         ? `${Math.round(distKm * 1000)} م`
         : `${distKm.toFixed(1)} كم`;
 
-      // ضبط قيمة الـ select وتحديث البحث
+      // ضبط المحطة
       const startSelect = document.getElementById('start-station');
       if (startSelect) {
         startSelect.value = station.name;
@@ -1233,7 +1238,6 @@ function requestLocation() {
         onSearchCriteriaChanged();
       }
 
-      // تنبيه اهتزاز خفيف على الموبايل عند النجاح
       if (navigator.vibrate) navigator.vibrate(60);
 
       setGpsButtonState('success');
@@ -1244,7 +1248,6 @@ function requestLocation() {
         showToast(`📍 أقرب محطة: ${station.name} — على بُعد ${distText}`, 'success');
       }
     },
-    // ❌ فشل التحديد
     (err) => {
       clearTimeout(fallbackTimer);
       setGpsButtonState('error');
@@ -1256,8 +1259,8 @@ function requestLocation() {
       showToast(msgs[err.code] || 'خطأ في تحديد الموقع', 'error');
       if (err.code === 1) showLocationSettingsHint();
     },
-    // maximumAge: 30s — يسمح باستخدام GPS محفوظ حديث لسرعة أفضل على الموبايل
-    { enableHighAccuracy: true, timeout: TIMEOUT_MS, maximumAge: 30000 }
+    // [تعديل جديد] maximumAge: 0 لإجبار المتصفح على التقاط الموقع الحالي الفعلي بدلاً من الاعتماد على موقع مخزن
+    { enableHighAccuracy: true, timeout: TIMEOUT_MS, maximumAge: 0 }
   );
 }
 

@@ -2,8 +2,7 @@
   "name": "قطاري",
   "short_name": "قطاري",
   "description": "دليل مواعيد قطارات خط 23 يوليو - شبين القناطر",
-  "start_url": "/OG/index.html",
-  "scope": "/OG/"
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#1e3a8a",
   "theme_color": "#1e3a8a",
